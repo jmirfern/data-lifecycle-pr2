@@ -1,0 +1,372 @@
+---
+title: 'Tipologia i cicle de vida de les dades: Practica 2'
+author: "Autors: Jonathan Mir Fernández-Aramburu i Dario Cabrera Gurillo"
+date: "Maig 2022"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+  word_document: default
+  pdf_document: 
+    toc: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(out.width="250px", dpi=100, warning = FALSE)
+```
+******
+# Introducció
+******
+```{R message=FALSE, warning=FALSE}
+if (!require('dplyr')) install.packages('dplyr'); library('dplyr')
+if (!require('nortest')) install.packages('nortest'); library('nortest')
+if (!require('corrplot')) install.packages('corrplot'); library('corrplot')
+if (!require('doBy')) install.packages('doBy'); library('doBy')
+if (!require('caret')) install.packages('caret'); library('caret')
+if (!require('tidyr')) install.packages('tydir'); library('tidyr')
+if (!require('DescTools')) install.packages('DescTools'); library('DescTools')
+if (!require('pROC')) install.packages('pROC'); library('pROC')
+if (!require('rminer')) install.packages('rminer'); library('rminer')
+if (!require('C50')) install.packages('C50'); library('C50')
+````
+
+
+
+## Presentació
+
+En aquest treball realitzarem un estudi sobre el dataset [Red Wine Quality](https://www.kaggle.com/datasets/uciml/red-wine-quality-cortez-et-al-2009), el qual tenim a la plataforma de kaggle i correspon a una adaptació del dataset treobad en *UCI machine learning repository*, el qual agrupades les diferents caracteristiques dels vins blanc i rojos analitzats, amb la seua qualitat.
+
+El repostiroy d'aquest treball es troba en https://github.com/jmirfern/data-lifecycle-pr2.
+
+ELIMINAR ABANS D'ENTREGAR: PER A LA CONFIGURACIO DEL YAML, LES OPCIONS DEL PDF:
+https://bookdown.org/yihui/rmarkdown/pdf-document.html
+
+
+******
+# Descripció del dataset
+******
+
+Aquest dataset no fa referencia a si el tipus de vi es blanc o roig, tenims les diferents caractersitiques del vi, i la seua puntuacio numerica de qualitat, dins del rang $[1,10]$
+
+1. **fixed acidity**: Quantitat d'àcids implicats al vi , en valor numeric.
+
+2. **volatile acidity**: Quantitat d'àcid acètic al vi. on si tenim un nivell molt alt, aquest vi fara gust a vinagre.
+
+3. **citric acid**: Aci ens trobem en la quantitat d'acid citric que te el vi, una variable numerica. Aquest valor ens diu la “frescor”  dels vins.
+
+4. **residual sugar:** La quantitat de sucre en el vi despres de la fermentació, almenys tots els vins han de tenir 1 gram/litre. Si hi ha mes de 45 grams/litres, es considera un vi dolç.
+
+5. **chlorides:** valor numeric de la quantitat de sal al vi.
+
+6. **free sulfur dioxide:** En diu el valor numeric de dioxid de sulfur lliure, element que impedeix el creixement bacteria i l'oxidació del vi.
+
+7. **total sulfur dioxide:** Quantitat total de dioxid de sulfur. Encara que és necesari per a evitar la oxidació, un valor molt gran de concentracio desbaratara el gust i l'olor del vi.
+
+8. **density:** Densitat del vi comparat amb la de l'aigua. Els vins solen ser un 8\% mes densos que l'aigua.
+
+9. **pH:** Valor numeric que ens diu el grau d'acidesa o alcanilitat del vi, per regla general, els vins solen ser algo acids (valors entre 3 i 4). Recordem que l'escala pH va del 0 (molt àcid) fins al 14 (molt bàsic).
+
+10- **sulphates:** Valor numeric que ens diu la quantitat d'additiu del vi que contribueix a la creacio de diòxid de sofre.
+
+11. **alcohol:** Valor numeric que ens diu el percentatge d'alcohol que te el nostre vi.
+
+12. **quality:** Puntuaje rebut al vi, sense decimals, en l'escala de $[1,10]$
+
+
+## Descripció de la PRA a realitzar
+
+En aquesta activitat farem un analisis descriptius del dataset de vins aportat, en aquest mirarem en primer lloc com es distribuixen les dades, aixi com diagrames de caixa i bigots per a veure els valors extrems que podem trobar. Despres realitzarem un estudi de la normalitat de les variables, realitzant histogrames i QQ-plot, per acabar veient els diferents testos de normalitat que ens aporta R. A continuacio farem una comprovació de l’homoscedasticitat, per a veure si la variancia entre les dades amb la qualitat conserven la variancia. Per ultim realitzarem un diagrama de correlacions, un model de regresio logistica, i un model supervisat d'arbre.
+  
+
+
+******
+# Integracio i seleccio de dades a analitzar.
+******
+
+
+
+## Elecció del conjunt de dades
+
+Anem a realitzar un analisis previ
+
+A continuació carreguem les dades:
+````{R carrega de dades videojocs}
+library(readr)
+B_vi <- read.csv("winequality-red.csv", sep= ",", header= TRUE, dec=".")
+````
+
+## Exploració del conjunt de dades
+
+
+````{R Exploracio 1}
+str(B_vi)
+````
+
+Veiem que tenim un total de 1599 registres amb 12 variables.
+
+Fixem-nos com estan distribuides les nostres variables, anem a veure el minim, els quartils i el maxim.
+
+````{R Exploracio 2}
+summary(B_vi)
+````
+
+Veiem que hi ha un gran diferencia entre els valors de les variables **residual sugar, free sulfur dioxide i total sulfur dioxide**. També podem observar que la **mitjana de qualitat del vi és del 5.636 i la mitjana d’ alcohol contingut en el vi és de 10.20**.
+
+Com apunt apart, veiem que en aquesta base de dades no tenim distancio de si el vi es blanc o roig, aleshores no podem treballar les dades per separades, les tenim que treballar segons la qualitat del vi.
+
+## Analisis d'elements buis i 0
+
+En les dades que acabem d'obtenir, veiem que no tenim valors nuls (almenys no identificats com a nuls). Per a comprovar-ho anem a veure les columnes.
+
+````{R nuls}
+colSums(is.na(B_vi))
+````
+
+Com veiem en el nostre cas, no tenim valors nuls, ja que aquest dataset pareix estar ben arreglat en la plataforma de Kaggle. Tampoc podem eliminar ningun valor en 0, ja que son valors que perfectament poden entendre's en el nostre dataset.
+
+Ara veiem si tenim valors extrems, és a dir, *outliers*, per a veure-ho emprarem les grafiques Boxplot, i les dades considerades *outliers* son aquelles que ixen dels "bigots", és a dir, aquelles fora del rang $$[Q_1-1.5*IR,Q_3+1.5*IRC]$$, on $IRC$ és el rang interquartilic, o lo que és el mateix, $IRC=Q_3-Q_1$, i $Q_i$ és el percentil i-essim.
+
+````{R outliers}
+atributs <- names(B_vi)
+p <- rainbow(12) #Colorets
+k <- 1 # Per a reduir les lines de codi
+for(i in 1:3){
+   layout(matrix(c(1:4), nrow=1, byrow=FALSE)) #Matriu de grafiques 1x4
+  
+    for (j in k:(i*4)){
+      boxplot(B_vi[,j], xlab=atributs[j], col=p[j]) #Boxplots
+      }
+  k <- 4*i+1
+  }
+````
+
+Crerarem un altre conjunt eliminant els valors extrems que veiem en el diagrama de caixa i bigots. Aquesta ho emprarem per al test de saphiro per veure si segueix una distribucio normal, o si realitzant alguna transformacio sense outliers segueixen una normal (tambe se li pot dir distribucio gaussiana).
+
+````{R Valors Extrems}
+# Llegim el document i el guardem en un altre noma
+B_vi2 <- read.csv("winequality-red.csv", sep= ",", header= TRUE, dec=".")
+
+# Per a eliminar valors nuls seguin el rang interquartilic
+for (i in 1:11){
+  for (j in 1:1599){
+    Hor <- B_vi2[,i]
+    a <- quantile(Hor, 0.25, na.rm=TRUE)
+    b <- quantile(Hor, 0.75, na.rm=TRUE)
+    iqr <- (b-a)
+
+    if (B_vi2[,i][j] <= (a-1.5*iqr)){
+      B_vi2[,i][j] <- NA
+    }
+    else {if (B_vi2[,i][j] > (b+1.5*iqr)){
+      B_vi2[,i][j] <- NA
+    }
+    }
+  }
+}
+#Veiem valors nuls
+print(colSums(is.na(B_vi2)))
+
+# Eliminem aquelles files que tenen valors nuls
+B_vi2 <- drop_na(B_vi2)
+````
+***********
+# Analisis de les dades
+***********
+Recordem que volem veure si les nostres variables segueixen una normal, veurem com evoluciona la qualitat d'un vi segons els altres atributs que tenim. Segons si funcionen com una distribucio normal podem aplicar alguns procesos o uns altres, en cas de que funcionen, tindriem que els nostres models i resultats serien molt mes eficaços que en cas que no.
+ 
+## Estudi de la normalitat de les dades
+
+Veiem de manera grtafica, mitjançant histogrames, com es comporten les nostres variables.
+
+````{R Histogrames1}
+atributs <- names(B_vi)
+p <- rainbow(13) #Colorets
+k <- 1 # Per a reduir les lines de codi
+for(i in 1:4){
+  layout(matrix(c(1:3), nrow=1, byrow=FALSE)) #Matriu de grafiques 1x4
+
+  for (j in k:(i*3)){
+    hist(B_vi[,j],prob=TRUE, xlab=atributs[j], ylab="Densitat", col=p[j],
+         main=paste("Histograma de ",atributs[j])) # Histograma per densitats
+    curve(dnorm(x,mean=mean(B_vi[,j]),sd=sd(B_vi[,j])), from=min(B_vi[,j]),
+      to=max(B_vi[,j]), add=TRUE, col=p[13], lwd=2) #Curva normal
+  }
+  k <- 3*i+1
+}
+````
+
+Com podem apreciar en els histogrames, pareix ser que les nostres variables estan desplaçades a l'esquerra, aleshores una transformacio convinient seria realitzar la tranformacio logaritmica o la inversa. Mes avanr veurem si aquesta tranformacio es suficient per a que les variables segueixen una normal, emprant el test de Saphiro.
+
+Per ara acabem de visualitzar la comparacio en la normal fent grafiques QQ.
+
+````{R Grafic qqplot}
+k <- 1 # Per a reduir les lines de codi
+for(i in 1:3){
+   layout(matrix(c(1:4), nrow=2, byrow=FALSE)) #Matriu de grafiques 1x4
+  
+    for (j in k:(i*4)){
+      qqnorm(B_vi[,j], main=paste("QQPlot de ",atributs[j]), col=p[j])
+      qqline(B_vi[,j]) #Boxplots
+      }
+  k <- 4*i+1
+  }
+
+````
+
+Fixant-nos en els diferents **Q-Q Plots**, no pareixen molt bons per a la normalitat, les millors son la densitat, el PH i el alcohol.
+Despres realitzarem els diferents testos, per a vorer si de veritat segueixen una distribució normal, deixarem fora la variable de qualificació, ja que sera el nostre target a analitzar.
+
+
+
+````{R Funcions comprovacio normalitat}
+for (i in 1:11){
+  p_val <- shapiro.test(B_vi[,i])
+  print(paste("El p-valor del saphito test de", atributs[i], 
+              "es:", p_val$p.value))
+}
+````
+
+Si no fem algo en els valors extrems, les nostres dades no segueixen una normal jeje.
+
+
+````{R Funcions comprovacio normalitat transformades}
+for (i in 1:11){
+  p_val <- shapiro.test(BoxCox(B_vi2[,j], lambda = BoxCoxLambda(B_vi2[,j])))
+  print(paste("El p-valor del saphito test de", atributs[i],
+              "convertida es:", p_val$p.value))
+}
+````
+
+````{R Funcions comprovacio normalitat Ks}
+for (i in 1:11){
+  p_val <- ks.test(B_vi[,i], pnorm, mean(B_vi[,i]), sd(B_vi[,i]))
+  print(paste("El p-valor del Kologomorov de", atributs[i], 
+              "es:", p_val$p.value))
+}
+````
+
+
+Ninguna segueix la normalitat, per aquest motiu no seria convenient aplicar una regresio lineal a les dades, ja que seria mes fiable tirar una moneda al aire que fiar-nos d'un model linial. Per aquest moti realitzarem una tranformacio de la nostra variable qualitat, i realitzar un model de regresio logistica.
+
+
+S'ha intentat realitzar les tranformacions tant logaritmica com inversa, ja que com veiem en els histogrames, tenim la cua desenvolupada per la dreta del histograma, pero aixi i tot no segueix una distribucio normal. A banda, tambe s'ha intentat realitzar una normalitzacio per escala i una tranformacio Box-Cox. aquesta tampoc amb resultats correctes. Si es necesari i cap s'incoporaran.
+
+
+
+
+Com les nostres dades no segueiexen una distribucio normal, anem a veure una comporvacio de l'homoscedasticitat emprant una prova de Finger-Killen
+
+````{R Filgner homoscedasticitat}
+for (i in 1:11){
+  p_val <- fligner.test(B_vi[,12]~ B_vi[,i])
+  print(paste("El test homoscedicitat de", atributs[i], 
+              "amb quality es:", p_val$p.value))
+}
+````
+
+Com veiem, per als p-valors superiors als 0.05, tenim que si son dades homoscebla, en canvi, per a les ods que son menors, tenen una relacio heterovlavla. Com les nostres dades no segueixen una distribucio normal, realitzar un model de regresio lineal no es el metode mes eficaç. Farem un model logistic a veure si aquest funciona.
+
+Abans de continuar, realitzarem un estudi sobre la correlacio de les nostres variables. Ens concentrarem mes en la correlacio que hi han en les variables segons la qualificacio obtinguda, com no segueixen una distribucio normal emprarem el metode *spearman*.
+
+
+````{R CORPLOT}
+M = cor(B_vi, method="spearman")
+corrplot(M,method="color",tl.col="black", tl.srt=30, order = "AOE",
+number.cex=0.75,sig.level = 0.01, addCoef.col = "black")
+
+````
+
+Com podem observar, les variables que mes correlacio tenen son, de manera positiva (és a dir, si la qualificacio es mes alta, estes creixen amb la qualificacio) son: alcohol (0.48) i luphatos (0.38). I de manera negativa (estan relacionades de manera inversa) és volatile.acidity (-0.38).
+
+Com es logic pensar, els atributs que mes relacionades son, en manera negativa, es el ph del vi amb fixed.aciditym, amb un valor de -0.71.
+
+Ara realitzarem una regresio logistica, per aquest motiu transforame l'atribut target, que actualment es troba de manera numerica, a un atribut logistic, on aquelles puntuacions superiors o igal a 6 considerem que estan aprovades i inferiors a aquest valor seran suspeses. Aquesta particio es realitza perque en el histograma anterior veiem que la majoria de les dades es troben al voltant del 5 i el 6. Les variables dependents que emprarem serna aquelles que consegueix guardar certa variancia amb la qualificacio, vist abans en el test de l'homoscedasticitat.
+
+````{R Regresio X}
+set.seed(200)
+B_vi[,"quality_range"] <- cut(B_vi$quality, breaks=c(0,5.9,10), labels=c("suspens", "aprovat"))
+B_vi <- select(B_vi, -quality)
+m1 <- glm(quality_range ~fixed.acidity+volatile.acidity+citric.acid+residual.sugar+chlorides+
+            residual.sugar+free.sulfur.dioxide+density+pH, data=B_vi, family=binomial)
+summary(m1)
+
+````
+
+Com veiem, el nostre model te una puntuacio de AIC de 1880, aquest valor quant mes petit millor (revisar). A banda, totes les variables tenen un valor menor al valor $\alpha=0.05$, a excepció del chlorides i free.sulfur.dioxide. Seria convenient eliminar aquests atributs si realitzem un altre model logisitic.
+
+
+Per a veure com funciona el nostre model, realitzarem una comprovacio grafica mitjançant la corba ROC, aquesta corba realitza una grafica i segons el area que queda per sota la corva amb la recta $y=x$, en diu com va el nostre test. Una puntuacio de 0.5 vol dir que el nostre test no funciona correctament, i una puntuacio de 1 vol dir que es perfecte. A veure el resultat que obtenim. EXPLICAR MILLOR LA CORBA ROC.
+
+````{R corba roc}
+prob=predict(m1,B_vi,type="response")
+r=roc(B_vi$quality_range, prob, data=B_vi)
+plot(r)
+auc(r)
+````
+
+un valor de 0.767, és un valor molt bo de prediccio, pero podria ser millorable, ja sigui realitzant transformacions de les nostres variables o eliminar aquells atributs que fan mal be la prediccio. 
+
+
+
+Per ultim, realitzarem un model supervisat, en aquest cas hem elegit el C5.0, vist en anterioritat en altres assignatures. Aquest model ens realitza un diagrama d'arbre, paregut a un arbre de decisio, on segons el resultat de la variable a analitzar decidirem un cami o un altre, acabant en una fulla.
+
+````{R Model Supervisat}
+set.seed(200)
+
+# Per a graficar l'arbre
+gr = expand.grid(trials = c(1, 2), 
+model = c("tree"), winnow = c(TRUE, FALSE))
+
+# Conjunt de entrenament i test
+sep <- holdout(B_vi$quality_range, ratio=2/3, mode="stratified")
+train <- B_vi[sep$tr,]
+test <- B_vi[sep$ts,]
+
+# A veure la distbucio
+print(table(train$quality_range))
+
+print(table(test$quality_range))
+
+# Creacio del model
+train_control<- trainControl(method="repeatedcv", number=2, repeats=5)
+model <- train(quality_range~., data=train, trControl = train_control,
+               method="C5.0", tuneGrid=gr)
+
+
+#Apliquem el millor model posible
+c5model = C5.0.default(x = select(train, -quality_range), y = train$quality_range, 
+trials = model$bestTune$trials, rules = model$bestTune$model == "rules", 
+control = C5.0Control(winnow = model$bestTune$winnow))
+
+summary(c5model)
+pred2 <- predict(c5model, newdata=test)
+confusionMatrix(pred2, test$quality_range)
+
+plot(c5model, subtree= 3)
+````
+
+
+De manera visual, el nostre arbre es dificil de llegir, pero veiem que el alcohol te un pes significatiu en el nostre model. amb les dades veiem que el nostre p-valor es molt petit, cosa que ens dona bona señal. Com hem dit abans, ara de manera textual, la variable de mes pes en el nostre model es la quantitat d'alcohol que te el vi, acompanyat despres dels sulphates. Tambe veiem que el model ha clasificat incorrectament 140 dades de les dades d'entrenament, que no son poques.
+
+Per ultim comentar la matriu de confusio amb les dades de test, en aquest cas partim de 248 dades clasificades com suspenses i 285 dades com a aprovades, un total de 533 dades. Correctament han sigut clasificades 170 aprovades i 227 suspenses. Com a aprovades incorrectament tenim 58 dades i suspenses incorrectament 78 dades, ens fa pensar que el nostre model és mes facil que un vi siga bo (és a dir que aprove), a que siga roin. L'exactitud del nostre model es de 0.745, un resultat prou bo (pero millorable).
+
+
+Per ultim extraiem el csv del nostre archiu modificat.
+````{R CSV EXPORT}
+write.csv(B_vi, "Vins_categoritzats.csv")
+````
+
+
+
+
+
+
+| Contribucions 	| Firma 	|
+|:---:	|:---:	|
+| Investigació Prèvia 	| JMF, DCG 	|
+| Redacció de les respostes 	| JMF, DCG 	|
+| Desenvolupament Codi 	| JMF, DCG 	|
