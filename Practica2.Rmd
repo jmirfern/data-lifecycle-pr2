@@ -3,16 +3,16 @@ title: 'Tipologia i cicle de vida de les dades: Pràctica 2'
 author: "Autors: Jonathan Mir Fernández-Aramburu i Dario Cabrera Gurillo"
 date: "Maig 2022"
 output:
+  pdf_document: 
+    toc: true
+    number_sections: true
+  word_document: default
   html_document:
     highlight: default
     number_sections: yes
     theme: cosmo
     toc: yes
     toc_depth: 2
-  word_document: default
-  pdf_document: 
-    toc: true
-    number_sections: true
 ---
 
 ```{r setup, include=FALSE}
@@ -379,7 +379,7 @@ confusionMatrix(pred2, test$quality_range)
 plot(c5model, subtree= 3)
 ````
 
-De manera visual, el nostre arbre es difícil de llegir, pero veiem que l'alcohol té un pes significatiu en el nostre model. En els resultats observem que el p-valor és molt petit, fet indicatiu de que el model és significatiu. A més, tal i com es mostra en el digrama, les variables alcohol i sulphates són les més significatives. 
+De manera visual, el nostre arbre es difícil de llegir, pero veiem que l'alcohol té un pes significatiu en el nostre model. En els resultats observem que el p-valor és molt petit, fet indicatiu de que el model és significatiu. A més, tal i com es mostra en el diagrama, les variables alcohol i sulphates són les més significatives. 
 
 Analitzant la matriu de confusió també podem veure que hi ha 140 dades incorrectament classificades en la partició d'entrenament. En la partició de test, el model partim de 248 registres classificats com suspesos (puntuació inferior a 6) i 285 registres com a aprovats (puntuació igual o superior a 6), un total de 533 dades. En relació als falsos negatius tenim 58 registres i 78 falsos positius. Per tant, hi ha major tendència a que el model faci una predicció erronia cap a un fals positiu. L'exactitud total del model és del 0.745. 
 
