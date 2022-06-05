@@ -12,3 +12,8 @@ El dataset escollit per la pràctica correspon a [*Red wine quality*](https://ww
 - **Practica2.Rmd**: És el codi font que genera la documentació
 - **Vins_categoritzata.csv**: Fitxer final amb les dades input i la categoria predita pel model entrenat
 - **winequality-red.csv**: Fitxer original desgarregat del repositori de [kaggle](https://www.kaggle.com/datasets/uciml/red-wine-quality-cortez-et-al-2009)
+
+## Presentació resultats 
+
+El video amb la presentació de resultats pot trobar-se en el següent enllaç:
+[Google drive](https://drive.google.com/file/d/1r9WXHuddX7OS04bcsHfljDyATuV4xVOu/view?usp=sharing)
